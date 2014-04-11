@@ -91,7 +91,7 @@ dt_imageio_open_rawspeed(
   FileReader f(filen);
 #else
   char filen[1024];
-  snprintf(filen, 1024, "%s", filename);
+  snprintf(filen, sizeof(filen), "%s", filename);
   FileReader f(filen);
 #endif
 
@@ -107,8 +107,8 @@ dt_imageio_open_rawspeed(
       if(meta == NULL)
       {
         char datadir[1024], camfile[1024];
-        dt_loc_get_datadir(datadir, 1024);
-        snprintf(camfile, 1024, "%s/rawspeed/cameras.xml", datadir);
+        dt_loc_get_datadir(datadir, sizeof(datadir));
+        snprintf(camfile, sizeof(camfile), "%s/rawspeed/cameras.xml", datadir);
         // never cleaned up (only when dt closes)
         meta = new CameraMetaData(camfile);
       }
@@ -204,7 +204,7 @@ dt_imageio_open_rawspeed_sraw(dt_image_t *img, RawImage r, dt_mipmap_cache_alloc
 
   // work around 50D bug
   char makermodel[1024];
-  dt_colorspaces_get_makermodel(makermodel, 1024, img->exif_maker, img->exif_model);
+  dt_colorspaces_get_makermodel(makermodel, sizeof(makermodel), img->exif_maker, img->exif_model);
 
   // actually we want to store full floats here:
   img->bpp = 4*sizeof(float);

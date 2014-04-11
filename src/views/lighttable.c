@@ -299,7 +299,7 @@ static void _update_collected_images(dt_view_t *self)
 
   char col_query[2048];
 
-  snprintf(col_query, 2048, "INSERT INTO memory.collected_images (imgid) %s", query);
+  snprintf(col_query, sizeof(col_query), "INSERT INTO memory.collected_images (imgid) %s", query);
 
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), col_query, -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, 0);
@@ -1153,7 +1153,7 @@ void expose_full_preview(dt_view_t *self, cairo_t *cr, int32_t width, int32_t he
     {
       gboolean from_cache = FALSE;
       char filename[2048];
-      dt_image_full_path(lib->full_preview_id, filename, 2048, &from_cache);
+      dt_image_full_path(lib->full_preview_id, filename, sizeof(filename), &from_cache);
       if(lib->full_res_thumb)
       {
         free(lib->full_res_thumb);

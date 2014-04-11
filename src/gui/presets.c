@@ -190,7 +190,7 @@ menuitem_delete_preset (GtkMenuItem *menuitem, dt_iop_module_t *module)
   if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES)
   {
     char tmp_path[1024];
-    snprintf(tmp_path,1024,"%s/%s",_("preset"),name);
+    snprintf(tmp_path,sizeof(tmp_path),"%s/%s",_("preset"),name);
     dt_accel_deregister_iop(module,tmp_path);
     DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "delete from presets where name=?1 and operation=?2 and op_version=?3 and writeprotect=0", -1, &stmt, NULL);
     DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 1, name, strlen(name), SQLITE_TRANSIENT);
@@ -206,7 +206,6 @@ menuitem_delete_preset (GtkMenuItem *menuitem, dt_iop_module_t *module)
 static void
 edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_presets_edit_dialog_t *g)
 {
-  gint dlg_ret;
   gint is_new = 0;
 
   if(response_id == GTK_RESPONSE_ACCEPT)
@@ -228,7 +227,7 @@ edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_presets_edit_di
 
         gtk_window_set_title(GTK_WINDOW (dlg_changename), _("unnamed preset"));
 
-        dlg_ret = gtk_dialog_run (GTK_DIALOG (dlg_changename));
+        gtk_dialog_run (GTK_DIALOG (dlg_changename));
         gtk_widget_destroy (dlg_changename);
         return;
       }
@@ -254,7 +253,7 @@ edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_presets_edit_di
 
         gtk_window_set_title(GTK_WINDOW (dlg_overwrite), _("overwrite preset?"));
 
-        dlg_ret = gtk_dialog_run (GTK_DIALOG (dlg_overwrite));
+        gint dlg_ret = gtk_dialog_run (GTK_DIALOG (dlg_overwrite));
         gtk_widget_destroy (dlg_overwrite);
 
         // if result is BUTTON_NO exit without destroy dialog, to permit other name
@@ -292,7 +291,7 @@ edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_presets_edit_di
 
     //rename accelerators
     char path[1024];
-    snprintf(path,1024,"%s/%s",_("preset"),g->original_name);
+    snprintf(path,sizeof(path),"%s/%s",_("preset"),g->original_name);
     dt_accel_rename_preset_iop(g->module,path,gtk_entry_get_text(g->name));
     // commit all the user input fields
     DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "insert into presets (name, description, operation, op_version, op_params, enabled, "
@@ -361,7 +360,7 @@ edit_preset (const char *name_in, dt_iop_module_t *module)
   /* Create the widgets */
   char title[1024];
   GtkWidget *window = dt_ui_main_window(darktable.gui->ui);
-  snprintf(title, 1024, _("edit `%s' for module `%s'"), name, module->name());
+  snprintf(title, sizeof(title), _("edit `%s' for module `%s'"), name, module->name());
   dialog = gtk_dialog_new_with_buttons (title,
                                         GTK_WINDOW(window),
                                         GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -597,7 +596,7 @@ menuitem_new_preset (GtkMenuItem *menuitem, dt_iop_module_t *module)
   sqlite3_finalize(stmt);
   // create a shortcut for the new entry
   char path[1024];
-  snprintf(path,1024,"%s/%s",_("preset"),_("new preset"));
+  snprintf(path,sizeof(path),"%s/%s",_("preset"),_("new preset"));
   dt_accel_register_iop(module->so,FALSE,path,0,0);
   dt_accel_connect_preset_iop(module,_("new preset"));
   // then show edit dialog
@@ -775,7 +774,7 @@ dt_gui_presets_popup_menu_show_internal(dt_dev_operation_t op, int32_t version, 
 
     if(module && !memcmp(module->default_params, op_params, MIN(op_params_size, module->params_size)) &&
         !memcmp(module->default_blendop_params, blendop_params, MIN(bl_params_size, sizeof(dt_develop_blend_params_t)))) isdefault = 1;
-    if(!memcmp(params, op_params, MIN(op_params_size, params_size)) &&
+    if(module && !memcmp(params, op_params, MIN(op_params_size, params_size)) &&
         !memcmp(bl_params, blendop_params, MIN(bl_params_size, sizeof(dt_develop_blend_params_t))) &&
         module->enabled == enabled)
     {
@@ -872,11 +871,11 @@ void dt_gui_presets_update_mml(const char *name, dt_dev_operation_t op, const in
   char tmp[1024];
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "update presets set maker=?1, model=?2, lens=?3 where operation=?4 and op_version=?5 and name=?6", -1, &stmt, NULL);
-  snprintf(tmp, 1024, "%%%s%%", maker);
+  snprintf(tmp, sizeof(tmp), "%%%s%%", maker);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 1, tmp, strlen(tmp), SQLITE_TRANSIENT);
-  snprintf(tmp, 1024, "%%%s%%", model);
+  snprintf(tmp, sizeof(tmp), "%%%s%%", model);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 2, tmp, strlen(tmp), SQLITE_TRANSIENT);
-  snprintf(tmp, 1024, "%%%s%%", lens);
+  snprintf(tmp, sizeof(tmp), "%%%s%%", lens);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 3, tmp, strlen(tmp), SQLITE_TRANSIENT);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 4, op, strlen(op), SQLITE_TRANSIENT);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 5, version);

@@ -101,7 +101,7 @@ dt_database_t *dt_database_init(char *alternative)
   db->lock_acquired = TRUE;
 #else
   mode_t old_mode;
-  int fd, lock_tries = 0;
+  int fd = 0, lock_tries = 0;
   if(!strcmp(dbfilename, ":memory:"))
   {
     db->lock_acquired = TRUE;
@@ -115,7 +115,7 @@ lock_again:
     fd = open(db->lockfile, O_RDWR | O_CREAT | O_EXCL, 0666);
     umask(old_mode);
 
-    if(fd >= 0) // the lockfile was successfully created - write our PID into it
+    if(fd != -1) // the lockfile was successfully created - write our PID into it
     {
       gchar *pid = g_strdup_printf("%d", getpid());
       if(write(fd, pid, strlen(pid)+1) > -1)
@@ -127,7 +127,7 @@ lock_again:
       char buf[64];
       memset(buf, 0, sizeof(buf));
       fd = open(db->lockfile, O_RDWR | O_CREAT, 0666);
-      if(fd >= 0)
+      if(fd != -1)
       {
         if(read(fd, buf, sizeof(buf) - 1) > -1)
         {
@@ -137,10 +137,25 @@ lock_again:
             // the other process seems to no longer exist. unlink the .lock file and try again
             unlink(db->lockfile);
             if(lock_tries < 5)
+            {
+              close(fd);
               goto lock_again;
+            }
+          }
+          else
+          {
+            fprintf(stderr, "[init] the database lock file contains a pid that seems to be alive in your system: %d\n", other_pid);
           }
         }
+        else
+        {
+          fprintf(stderr, "[init] the database lock file seems to be empty\n");
+        }
         close(fd);
+      }
+      else
+      {
+        fprintf(stderr, "[init] error opening the database lock file for reading\n");
       }
     }
   }
@@ -164,7 +179,7 @@ lock_again:
     if(dbname) fprintf(stderr, "`%s'!\n", dbname);
     else       fprintf(stderr, "\n");
     fprintf(stderr, "[init] maybe your %s/darktablerc is corrupt?\n",datadir);
-    dt_loc_get_datadir(dbfilename, 512);
+    dt_loc_get_datadir(dbfilename, sizeof(dbfilename));
     fprintf(stderr, "[init] try `cp %s/darktablerc %s/darktablerc'\n", dbfilename,datadir);
     sqlite3_close(db->handle);
     g_free(dbname);
@@ -181,6 +196,20 @@ lock_again:
   sqlite3_exec(db->handle, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
   sqlite3_exec(db->handle, "PRAGMA journal_mode = MEMORY", NULL, NULL, NULL);
   sqlite3_exec(db->handle, "PRAGMA page_size = 32768", NULL, NULL, NULL);
+
+  /* now that we got a functional database we should make sure we won't be trampling on a
+     darktable 1.5+ schema */
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(db->handle, "select count(*) from db_info", -1, &stmt, NULL);
+  if(rc == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW) {
+    // We're in a darktable 1.5+ database, abandon ship
+    fprintf(stderr, "[init] error: can't open new database schema\n");
+    sqlite3_close(db->handle);
+    g_free(dbname);
+    g_free(db->lockfile);
+    g_free(db);
+    return NULL;
+  }
 
   g_free(dbname);
   return db;

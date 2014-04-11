@@ -64,7 +64,7 @@ int32_t dt_camera_capture_job_run(dt_job_t *job)
   int total = t->brackets ? t->count * t->brackets : t->count;
   char message[512]= {0};
   double fraction=0;
-  snprintf(message, 512, ngettext ("capturing %d image", "capturing %d images", total), total );
+  snprintf(message, sizeof(message), ngettext ("capturing %d image", "capturing %d images", total), total );
 
   /* try to get exp program mode for nikon */
   char *expprogram = (char *)dt_camctl_camera_get_property(darktable.camctl, NULL, "expprogram");
@@ -224,7 +224,9 @@ void _camera_image_downloaded(const dt_camera_t *camera,const char *filename,voi
   dt_camera_import_t *t = (dt_camera_import_t *)data;
   dt_image_import(t->film->id, filename, FALSE);
   dt_control_queue_redraw_center();
-  dt_control_log(_("%d/%d imported to %s"), t->import_count+1,g_list_length(t->images), g_path_get_basename(filename));
+  gchar* basename = g_path_get_basename(filename);
+  dt_control_log(_("%d/%d imported to %s"), t->import_count+1,g_list_length(t->images), basename);
+  g_free(basename);
 
   t->fraction+=1.0/g_list_length(t->images);
 

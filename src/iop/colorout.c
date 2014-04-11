@@ -931,11 +931,11 @@ void gui_init(struct dt_iop_module_t *self)
 
   char tooltip[1024];
   g_object_set(G_OBJECT(g->cbox1), "tooltip-text", _("rendering intent"), (char *)NULL);
-  snprintf(tooltip, 1024, _("ICC profiles in %s/color/out or %s/color/out"), confdir, datadir);
+  snprintf(tooltip, sizeof(tooltip), _("ICC profiles in %s/color/out or %s/color/out"), confdir, datadir);
   g_object_set(G_OBJECT(g->cbox2), "tooltip-text", tooltip, (char *)NULL);
-  snprintf(tooltip, 1024, _("display ICC profiles in %s/color/out or %s/color/out"), confdir, datadir);
+  snprintf(tooltip, sizeof(tooltip), _("display ICC profiles in %s/color/out or %s/color/out"), confdir, datadir);
   g_object_set(G_OBJECT(g->cbox3), "tooltip-text", tooltip, (char *)NULL);
-  snprintf(tooltip, 1024, _("softproof ICC profiles in %s/color/out or %s/color/out"), confdir, datadir);
+  snprintf(tooltip, sizeof(tooltip), _("softproof ICC profiles in %s/color/out or %s/color/out"), confdir, datadir);
   g_object_set(G_OBJECT(g->cbox5), "tooltip-text", tooltip, (char *)NULL);
 
   g_signal_connect (G_OBJECT (g->cbox1), "value-changed",
@@ -974,10 +974,10 @@ void gui_cleanup(struct dt_iop_module_t *self)
 void init_key_accels(dt_iop_module_so_t *self)
 {
   dt_accel_register_iop(self, FALSE, NC_("accel", "toggle softproofing"),
-                        GDK_KEY_s, 0);
+                        GDK_KEY_s, GDK_CONTROL_MASK);
 
   dt_accel_register_iop(self, FALSE, NC_("accel", "toggle gamutcheck"),
-                        GDK_KEY_g, 0);
+                        GDK_KEY_g, GDK_CONTROL_MASK);
 }
 
 void connect_key_accels(dt_iop_module_t *self)

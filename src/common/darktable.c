@@ -194,7 +194,11 @@ gboolean dt_supported_image(const gchar *filename)
   gboolean supported = FALSE;
   char **extensions = g_strsplit(dt_supported_extensions, ",", 100);
   char *ext = g_strrstr(filename,".");
-  if(!ext) return FALSE;
+  if(!ext)
+  {
+    g_strfreev(extensions);
+    return FALSE;
+  }
   ext++;
   for(char **i=extensions; *i!=NULL; i++)
     if(!g_ascii_strncasecmp(ext, *i,strlen(*i)))
@@ -353,6 +357,11 @@ int dt_load_from_string(const gchar* input, gboolean open_image_in_dr)
 
 int dt_init(int argc, char *argv[], const int init_gui)
 {
+#ifndef __WIN32__
+  if(getuid() == 0 || geteuid() == 0)
+    printf("WARNING: either your user id or the effective user id are 0. are you running darktable as root?\n");
+#endif
+
   // make everything go a lot faster.
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
 #if !defined __APPLE__ && !defined __WIN32__
@@ -576,7 +585,7 @@ int dt_init(int argc, char *argv[], const int init_gui)
   g_slist_free_full(config_override, g_free);
 
   // set the interface language
-  const gchar* lang = dt_conf_get_string("ui_last/gui_language");
+  const gchar* lang = dt_conf_get_string("ui_last/gui_language"); // we may not g_free 'lang' since it is owned by setlocale afterwards
   if(lang != NULL && lang[0] != '\0')
   {
     if(setlocale(LC_ALL, lang) != NULL)
@@ -899,16 +908,16 @@ void dt_print(dt_debug_thread_t thread, const char *msg, ...)
   }
 }
 
-void dt_gettime_t(char *datetime, time_t t)
+void dt_gettime_t(char *datetime, size_t datetime_len, time_t t)
 {
   struct tm tt;
   (void)localtime_r(&t, &tt);
-  strftime(datetime, 20, "%Y:%m:%d %H:%M:%S", &tt);
+  strftime(datetime, datetime_len, "%Y:%m:%d %H:%M:%S", &tt);
 }
 
-void dt_gettime(char *datetime)
+void dt_gettime(char *datetime, size_t datetime_len)
 {
-  dt_gettime_t(datetime, time(NULL));
+  dt_gettime_t(datetime, datetime_len, time(NULL));
 }
 
 void *dt_alloc_align(size_t alignment, size_t size)
@@ -941,7 +950,7 @@ void dt_show_times(const dt_times_t *start, const char *prefix, const char *suff
   if (darktable.unmuted & DT_DEBUG_PERF)
   {
     dt_get_times(&end);
-    i = sprintf(buf, "%s took %.3f secs (%.3f CPU)", prefix, end.clock - start->clock, end.user - start->user);
+    i = snprintf(buf, sizeof(buf), "%s took %.3f secs (%.3f CPU)", prefix, end.clock - start->clock, end.user - start->user);
     if (suffix != NULL)
     {
       va_list ap;
